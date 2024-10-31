@@ -1,0 +1,15 @@
+{
+  "name": "ESP32_Display_Panel",
+  "keywords": "CIY, AXS15231b",
+  "description": "ESP32 Library for use with the CIY AXS15231b Display Panel.",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/NorthernMan54/ESP32_Display_Panel.git"
+  },
+  "version": "0.1.0",
+  "license": "GPL-3.0",
+  "frameworks": "arduino",
+  "platforms": [
+      "espressif32"
+  ]
+}
