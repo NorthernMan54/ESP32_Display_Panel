@@ -202,7 +202,7 @@ lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 
     /* Display context */
     lvgl_port_display_ctx_t *disp_ctx = malloc(sizeof(lvgl_port_display_ctx_t));
-    ESP_GOTO_ON_FALSE(disp_ctx, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for display context allocation!");
+    ESP_GOTO_ON_FALSE(disp_ctx, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for display context allocation! %d", sizeof(lvgl_port_display_ctx_t));
     disp_ctx->io_handle = disp_cfg->io_handle;
     disp_ctx->panel_handle = disp_cfg->panel_handle;
     disp_ctx->trans_size = disp_cfg->trans_size;
@@ -222,7 +222,7 @@ lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     /* alloc draw buffers used by LVGL */
     /* it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized */
     buf1 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color_t), buff_caps);
-    ESP_GOTO_ON_FALSE(buf1, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf1) allocation!");
+    ESP_GOTO_ON_FALSE(buf1, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf1) allocation! %d", disp_cfg->buffer_size * sizeof(lv_color_t));
 
     if (disp_ctx->trans_size)
     {
@@ -231,12 +231,12 @@ lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 
         // buf2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color_t), caps);
 
-        buf2 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color_t), caps);
-        ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
+        buf2 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color_t), buff_caps);
+        ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer2(transport) allocation! %d", disp_cfg->buffer_size * sizeof(lv_color_t));
         disp_ctx->trans_buf_1 = buf2;
 
-        buf3 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color_t), caps);
-        ESP_GOTO_ON_FALSE(buf3, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
+        buf3 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color_t), buff_caps);
+        ESP_GOTO_ON_FALSE(buf3, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer3(transport) allocation! %d", disp_cfg->buffer_size * sizeof(lv_color_t));
         disp_ctx->trans_buf_2 = buf3;
 
         trans_done_sem = xSemaphoreCreateCounting(1, 0);
@@ -254,7 +254,32 @@ lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     lv_display_set_flush_cb(display, lvgl_port_flush_callback);
     lv_display_set_buffers(display, buf1, buf2, disp_cfg->buffer_size * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
+    ESP_LOGE(TAG, "Register display driver to LVGL buf1 %p, buf2 %p, buf3 %p", buf1, disp_ctx->trans_buf_1, disp_ctx->trans_buf_2);
+    ESP_LOGE(TAG, "Register display driver to LVGL size %d", disp_cfg->buffer_size * sizeof(lv_color_t));
+    ESP_LOGE(TAG, "Register display driver to LVGL trans_size %d", disp_ctx->trans_size * sizeof(lv_color_t));
     ESP_LOGD(TAG, "Register display driver to LVGL");
+
+    //   ESP_LOGE(TAG, "Board: %s", BOARD_NAME);
+    //   ESP_LOGE(TAG, "CPU: %s rev%d, CPU Freq: %d Mhz, %d core(s)", ESP.getChipModel(), ESP.getChipRevision(), getCpuFrequencyMhz(), ESP.getChipCores());
+    ESP_LOGE(
+        TAG,
+        "Free Heap: %u bytes\n"
+        "  MALLOC_CAP_8BIT      %7zu bytes\n"
+        "  MALLOC_CAP_DMA       %7zu bytes\n"
+        "  MALLOC_CAP_SPIRAM    %7zu bytes\n"
+        "  MALLOC_CAP_INTERNAL  %7zu bytes\n"
+        "  MALLOC_CAP_DEFAULT   %7zu bytes\n"
+        "  MALLOC_CAP_IRAM_8BIT %7zu bytes\n"
+        "  MALLOC_CAP_RETENTION %7zu bytes\n",
+        xPortGetFreeHeapSize(),
+        heap_caps_get_free_size(MALLOC_CAP_8BIT),
+        heap_caps_get_free_size(MALLOC_CAP_DMA),
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+        heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
+        heap_caps_get_free_size(MALLOC_CAP_IRAM_8BIT),
+        heap_caps_get_free_size(MALLOC_CAP_RETENTION));
+
     // lv_disp_drv_init(&disp_ctx->disp_drv);
     //    disp_ctx->disp_drv.hor_res = disp_cfg->hres;
     //    disp_ctx->disp_drv.ver_res = disp_cfg->vres;
@@ -406,7 +431,7 @@ void lvgl_port_unlock(void)
 
 void lvgl_port_flush_ready(lv_display_t *disp)
 {
-    log_i("lvgl_port_flush_ready");
+    ESP_LOGD(TAG, "lvgl_port_flush_ready");
     // assert(disp);
     // assert(disp->driver);
     // lv_disp_flush_ready(disp->driver);
@@ -462,7 +487,7 @@ static void lvgl_port_task_deinit(void)
 #if LVGL_PORT_HANDLE_FLUSH_READY
 static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx)
 {
-    log_i("lvgl_port_flush_ready_callback");
+    ESP_LOGE(TAG, "lvgl_port_flush_ready_callback");
     /*
     BaseType_t taskAwake = pdFALSE;
 
@@ -482,8 +507,9 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 
 static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
+    ESP_LOGE(TAG, "lvgl_port_flush_callback");
     assert(drv != NULL);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)dlv_display_get_user_data(drv);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(drv);
     assert(disp_ctx != NULL);
 
     const int x_start = area->x1;
@@ -496,6 +522,10 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, l
     lv_color_t *from = color_map;
     lv_color_t *to = NULL;
 
+    ESP_LOGE(TAG, "lvgl_port_flush_callback from %p", from);
+    ESP_LOGE(TAG, "lvgl_port_flush_callback trans_buf_1 %p", disp_ctx->trans_buf_1);
+    ESP_LOGE(TAG, "lvgl_port_flush_callback trans_buf_2 %p", disp_ctx->trans_buf_2);
+    ESP_LOGE(TAG, "lvgl_port_flush_callback trans_size %d", disp_ctx->trans_size);
     if (disp_ctx->trans_size)
     {
         assert(disp_ctx->trans_buf_1 != NULL);
@@ -563,92 +593,101 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, l
             disp_ctx->trans_act = (disp_ctx->trans_act == disp_ctx->trans_buf_1) ? (disp_ctx->trans_buf_2) : (disp_ctx->trans_buf_1);
             to = disp_ctx->trans_act;
 
-            switch (rotate)
+            ESP_LOGE(TAG, "LV_DISPLAY_ROTATION_0 to %p", to);
+            if (to != NULL)
             {
-            case LV_DISPLAY_ROTATION_90:
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < trans_width; x++)
-                    {
-                        *(to + x * height + (height - y - 1)) = *(from + y * width + x_start_tmp + x);
-                    }
-                }
-
-                x_draw_start = lv_display_get_vertical_resolution(drv) - y_end - 1;
-                x_draw_end = lv_display_get_vertical_resolution(drv) - y_start - 1;
-                y_draw_start = x_start_tmp;
-                y_draw_end = x_end_tmp;
-                break;
-            case LV_DISPLAY_ROTATION_270:
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < trans_width; x++)
-                    {
-                        *(to + (trans_width - x - 1) * height + y) = *(from + y * width + x_start_tmp + x);
-                    }
-                }
-                x_draw_start = y_start;
-                x_draw_end = y_end;
-                y_draw_start = lv_display_get_horizontal_resolution(drv) - x_end_tmp - 1;
-                y_draw_end = lv_display_get_horizontal_resolution(drv) - x_start_tmp - 1;
-                break;
-            case LV_DISPLAY_ROTATION_180:
-                for (int y = 0; y < trans_height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        *(to + (trans_height - y - 1) * width + (width - x - 1)) = *(from + y_start_tmp * width + y * (width) + x);
-                    }
-                }
-                x_draw_start = lv_display_get_horizontal_resolution(drv) - x_end - 1;
-                x_draw_end = lv_display_get_horizontal_resolution(drv) - x_start - 1;
-                y_draw_start = lv_display_get_vertical_resolution(drv) - y_end_tmp - 1;
-                y_draw_end = lv_display_get_vertical_resolution(drv) - y_start_tmp - 1;
-                break;
-            case LV_DISPLAY_ROTATION_0:
-                for (int y = 0; y < trans_height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        *(to + y * (width) + x) = *(from + y_start_tmp * width + y * (width) + x);
-                    }
-                }
-                x_draw_start = x_start;
-                x_draw_end = x_end;
-                y_draw_start = y_start_tmp;
-                y_draw_end = y_end_tmp;
-                break;
-            default:
-                break;
-            }
-
-            if (0 == i)
-            {
-                if (disp_ctx->draw_wait_cb)
-                {
-                    disp_ctx->draw_wait_cb(disp_ctx->panel_handle->user_data);
-                }
-                xSemaphoreGive(disp_ctx->trans_done_sem);
-            }
-
-            xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
-            esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1, to);
-
-            if (LV_DISPLAY_ROTATION_90 == rotate)
-            {
-                x_start_tmp += max_width;
-            }
-            else if (LV_DISPLAY_ROTATION_270 == rotate)
-            {
-                x_end_tmp -= max_width;
-            }
-            if (LV_DISPLAY_ROTATION_0 == rotate)
-            {
-                y_start_tmp += max_height;
+                ESP_LOGE(TAG, "To target not set");
             }
             else
             {
-                y_end_tmp -= max_height;
+                switch (rotate)
+                {
+                case LV_DISPLAY_ROTATION_90:
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < trans_width; x++)
+                        {
+                            *(to + x * height + (height - y - 1)) = *(from + y * width + x_start_tmp + x);
+                        }
+                    }
+
+                    x_draw_start = lv_display_get_vertical_resolution(drv) - y_end - 1;
+                    x_draw_end = lv_display_get_vertical_resolution(drv) - y_start - 1;
+                    y_draw_start = x_start_tmp;
+                    y_draw_end = x_end_tmp;
+                    break;
+                case LV_DISPLAY_ROTATION_270:
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < trans_width; x++)
+                        {
+                            *(to + (trans_width - x - 1) * height + y) = *(from + y * width + x_start_tmp + x);
+                        }
+                    }
+                    x_draw_start = y_start;
+                    x_draw_end = y_end;
+                    y_draw_start = lv_display_get_horizontal_resolution(drv) - x_end_tmp - 1;
+                    y_draw_end = lv_display_get_horizontal_resolution(drv) - x_start_tmp - 1;
+                    break;
+                case LV_DISPLAY_ROTATION_180:
+                    for (int y = 0; y < trans_height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            *(to + (trans_height - y - 1) * width + (width - x - 1)) = *(from + y_start_tmp * width + y * (width) + x);
+                        }
+                    }
+                    x_draw_start = lv_display_get_horizontal_resolution(drv) - x_end - 1;
+                    x_draw_end = lv_display_get_horizontal_resolution(drv) - x_start - 1;
+                    y_draw_start = lv_display_get_vertical_resolution(drv) - y_end_tmp - 1;
+                    y_draw_end = lv_display_get_vertical_resolution(drv) - y_start_tmp - 1;
+                    break;
+                case LV_DISPLAY_ROTATION_0:
+                    ESP_LOGE(TAG, "LV_DISPLAY_ROTATION_0 %d %d %d ", trans_height, width, y_start_tmp);
+                    for (int y = 0; y < trans_height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            *(to + y * (width) + x) = *(from + y_start_tmp * width + y * (width) + x);
+                        }
+                    }
+                    x_draw_start = x_start;
+                    x_draw_end = x_end;
+                    y_draw_start = y_start_tmp;
+                    y_draw_end = y_end_tmp;
+                    break;
+                default:
+                    break;
+                }
+
+                if (0 == i)
+                {
+                    if (disp_ctx->draw_wait_cb)
+                    {
+                        disp_ctx->draw_wait_cb(disp_ctx->panel_handle->user_data);
+                    }
+                    xSemaphoreGive(disp_ctx->trans_done_sem);
+                }
+
+                xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
+                esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1, to);
+
+                if (LV_DISPLAY_ROTATION_90 == rotate)
+                {
+                    x_start_tmp += max_width;
+                }
+                else if (LV_DISPLAY_ROTATION_270 == rotate)
+                {
+                    x_end_tmp -= max_width;
+                }
+                if (LV_DISPLAY_ROTATION_0 == rotate)
+                {
+                    y_start_tmp += max_height;
+                }
+                else
+                {
+                    y_end_tmp -= max_height;
+                }
             }
         }
     }
