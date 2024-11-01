@@ -47,7 +47,7 @@ extern "C"
         uint32_t trans_size;     /*!< Allocated buffer will be in SRAM to move framebuf */
         uint32_t hres;           /*!< LCD display horizontal resolution */
         uint32_t vres;           /*!< LCD display vertical resolution */
-        lv_disp_rot_t sw_rotate; /* Panel software rotate_mask */
+        lv_display_rotation_t sw_rotate; /* Panel software rotate_mask */
         struct
         {
             unsigned int buff_dma : 1;    /*!< Allocated LVGL buffer will be DMA capable */
@@ -61,7 +61,7 @@ extern "C"
      */
     typedef struct
     {
-        lv_disp_t *disp;               /*!< LVGL display handle (returned from lvgl_port_add_disp) */
+        lv_display_t *disp;               /*!< LVGL display handle (returned from lvgl_port_add_disp) */
         esp_lcd_touch_handle_t handle; /*!< LCD touch IO handle */
 
         lvgl_port_wait_cb touch_wait_cb;
@@ -113,7 +113,7 @@ extern "C"
      * @param disp_cfg Display configuration structure
      * @return Pointer to LVGL display or NULL when error occurred
      */
-    lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg);
+    lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg);
 
     /**
      * @brief Remove display handling from LVGL
@@ -123,7 +123,7 @@ extern "C"
      * @return
      *      - ESP_OK                    on success
      */
-    esp_err_t lvgl_port_remove_disp(lv_disp_t *disp);
+    esp_err_t lvgl_port_remove_disp(lv_display_t *disp);
 
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
     /**

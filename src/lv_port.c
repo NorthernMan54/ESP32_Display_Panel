@@ -47,14 +47,14 @@ typedef struct
 {
     esp_lcd_panel_io_handle_t io_handle; /* LCD panel IO handle */
     esp_lcd_panel_handle_t panel_handle; /* LCD panel handle */
-    lv_disp_drv_t disp_drv;              /* LVGL display driver */
+    lv_display_t *disp_drv;              /* LVGL display driver */
 
     uint32_t trans_size;              /* Maximum size for one transport */
     lv_color_t *trans_buf_1;          /* Buffer send to driver */
     lv_color_t *trans_buf_2;          /* Buffer send to driver */
     lv_color_t *trans_act;            /* Active buffer for sending to driver */
     SemaphoreHandle_t trans_done_sem; /* Semaphore for signaling idle transfer */
-    lv_disp_rot_t sw_rotate;          /* Panel software rotation mask */
+    lv_display_rotation_t sw_rotate;  /* Panel software rotation mask */
 
     lvgl_port_wait_cb draw_wait_cb; /* Callback function for drawing */
 } lvgl_port_display_ctx_t;
@@ -63,7 +63,7 @@ typedef struct
 typedef struct
 {
     esp_lcd_touch_handle_t handle;   /* LCD touch IO handle */
-    lv_indev_drv_t indev_drv;        /* LVGL input device driver */
+    lv_indev_t *indev_drv;           /* LVGL input device driver */
     lvgl_port_wait_cb touch_wait_cb; /* Callback function for touch */
 } lvgl_port_touch_ctx_t;
 #endif
@@ -85,9 +85,9 @@ static void lvgl_port_task_deinit(void);
 #if LVGL_PORT_HANDLE_FLUSH_READY
 static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 #endif
-static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map);
+static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map);
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
-static void lvgl_port_touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data);
+static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data);
 #endif
 /*******************************************************************************
  * Public API functions
@@ -184,10 +184,10 @@ esp_err_t lvgl_port_deinit(void)
     return ESP_OK;
 }
 
-lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
+lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 {
     esp_err_t ret = ESP_OK;
-    lv_disp_t *disp = NULL;
+    //    lv_display_t *disp = NULL;
     lv_color_t *buf1 = NULL;
     lv_color_t *buf2 = NULL;
     lv_color_t *buf3 = NULL;
@@ -229,7 +229,9 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 
         uint32_t caps = MALLOC_CAP_DMA;
 
-        buf2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color_t), caps);
+        // buf2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color_t), caps);
+
+        buf2 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color_t), caps);
         ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
         disp_ctx->trans_buf_1 = buf2;
 
@@ -242,22 +244,26 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
         disp_ctx->trans_done_sem = trans_done_sem;
     }
 
-    lv_disp_draw_buf_t *disp_buf = malloc(sizeof(lv_disp_draw_buf_t));
-    ESP_GOTO_ON_FALSE(disp_buf, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL display buffer allocation!");
+    // lv_disp_draw_buf_t *disp_buf = malloc(sizeof(lv_disp_draw_buf_t));
+    // ESP_GOTO_ON_FALSE(disp_buf, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL display buffer allocation!");
 
     /* initialize LVGL draw buffers */
-    lv_disp_draw_buf_init(disp_buf, buf1, NULL, disp_cfg->buffer_size);
+    // lv_disp_draw_buf_init(disp_buf, buf1, NULL, disp_cfg->buffer_size);
+
+    lv_display_t *display = lv_display_create(disp_cfg->hres, disp_cfg->vres);
+    lv_display_set_flush_cb(display, lvgl_port_flush_callback);
+    lv_display_set_buffers(display, buf1, buf2, disp_cfg->buffer_size * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     ESP_LOGD(TAG, "Register display driver to LVGL");
-    lv_disp_drv_init(&disp_ctx->disp_drv);
-    disp_ctx->disp_drv.hor_res = disp_cfg->hres;
-    disp_ctx->disp_drv.ver_res = disp_cfg->vres;
-    disp_ctx->disp_drv.flush_cb = lvgl_port_flush_callback;
+    // lv_disp_drv_init(&disp_ctx->disp_drv);
+    //    disp_ctx->disp_drv.hor_res = disp_cfg->hres;
+    //    disp_ctx->disp_drv.ver_res = disp_cfg->vres;
+    //    disp_ctx->disp_drv.flush_cb = lvgl_port_flush_callback;
 
-    disp_ctx->disp_drv.draw_buf = disp_buf;
-    disp_ctx->disp_drv.user_data = disp_ctx;
+    //    disp_ctx->disp_drv.draw_buf = display;
+    //    disp_ctx->disp_drv.user_data = disp_ctx;
     /* Force full_fresh */
-    disp_ctx->disp_drv.full_refresh = 1;
+    //    disp_ctx->disp_drv.full_refresh = 1;
 
 #if LVGL_PORT_HANDLE_FLUSH_READY
     /* Register done callback */
@@ -267,7 +273,8 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     esp_lcd_panel_io_register_event_callbacks(disp_ctx->io_handle, &cbs, &disp_ctx->disp_drv);
 #endif
 
-    disp = lv_disp_drv_register(&disp_ctx->disp_drv);
+    lv_display_set_user_data(display, &disp_ctx);
+    // disp = lv_disp_drv_register(&disp_ctx->disp_drv);
 
 err:
     if (ret != ESP_OK)
@@ -294,39 +301,40 @@ err:
         }
     }
 
-    return disp;
+    return display;
 }
 
-esp_err_t lvgl_port_remove_disp(lv_disp_t *disp)
+esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
 {
     assert(disp);
-    lv_disp_drv_t *disp_drv = disp->driver;
-    assert(disp_drv);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)disp_drv->user_data;
 
-    lv_disp_remove(disp);
+    //    lv_display_t *disp_drv = disp->driver;
+    //   assert(disp_drv);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(disp);
+    /*
+            lv_disp_remove(disp);
 
-    if (disp_drv)
-    {
-        if (disp_drv->draw_buf && disp_drv->draw_buf->buf1)
-        {
-            free(disp_drv->draw_buf->buf1);
-            disp_drv->draw_buf->buf1 = NULL;
-        }
-        if (disp_drv->draw_buf && disp_drv->draw_buf->buf2)
-        {
-            free(disp_drv->draw_buf->buf2);
-            disp_drv->draw_buf->buf2 = NULL;
-        }
-        if (disp_drv->draw_buf)
-        {
-            free(disp_drv->draw_buf);
-            disp_drv->draw_buf = NULL;
-        }
-    }
-
+            if (disp_drv)
+            {
+                if (disp_drv->draw_buf && disp_drv->draw_buf->buf1)
+                {
+                    free(disp_drv->draw_buf->buf1);
+                    disp_drv->draw_buf->buf1 = NULL;
+                }
+                if (disp_drv->draw_buf && disp_drv->draw_buf->buf2)
+                {
+                    free(disp_drv->draw_buf->buf2);
+                    disp_drv->draw_buf->buf2 = NULL;
+                }
+                if (disp_drv->draw_buf)
+                {
+                    free(disp_drv->draw_buf);
+                    disp_drv->draw_buf = NULL;
+                }
+            }
+    */
     free(disp_ctx);
-
+    lv_display_delete(disp);
     return ESP_OK;
 }
 
@@ -336,6 +344,10 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
     assert(touch_cfg != NULL);
     assert(touch_cfg->disp != NULL);
     assert(touch_cfg->handle != NULL);
+
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, lvgl_port_touchpad_read);
 
     /* Touch context */
     lvgl_port_touch_ctx_t *touch_ctx = malloc(sizeof(lvgl_port_touch_ctx_t));
@@ -348,22 +360,24 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
     touch_ctx->touch_wait_cb = touch_cfg->touch_wait_cb;
 
     /* Register a touchpad input device */
-    lv_indev_drv_init(&touch_ctx->indev_drv);
-    touch_ctx->indev_drv.type = LV_INDEV_TYPE_POINTER;
-    touch_ctx->indev_drv.disp = touch_cfg->disp;
-    touch_ctx->indev_drv.read_cb = lvgl_port_touchpad_read;
-    touch_ctx->indev_drv.user_data = touch_ctx;
-    return lv_indev_drv_register(&touch_ctx->indev_drv);
+    // lv_indev_drv_init(&touch_ctx->indev_drv);
+    // touch_ctx->indev_drv.type = LV_INDEV_TYPE_POINTER;
+    // touch_ctx->indev_drv.disp = touch_cfg->disp;
+    // touch_ctx->indev_drv.read_cb = lvgl_port_touchpad_read;
+    // touch_ctx->indev_drv.user_data = touch_ctx;
+
+    lv_indev_set_user_data(indev, touch_ctx);
+    return indev;
 }
 
 esp_err_t lvgl_port_remove_touch(lv_indev_t *touch)
 {
     assert(touch);
-    lv_indev_drv_t *indev_drv = touch->driver;
-    assert(indev_drv);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)indev_drv->user_data;
+    //    lv_indev_t *indev_drv = touch->driver;
+    //    assert(indev_drv);
+    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(touch);
 
-    /* Remove input device driver */
+    // Remove input device driver
     lv_indev_delete(touch);
 
     if (touch_ctx)
@@ -371,6 +385,7 @@ esp_err_t lvgl_port_remove_touch(lv_indev_t *touch)
         free(touch_ctx);
     }
 
+    lv_indev_delete(touch);
     return ESP_OK;
 }
 #endif
@@ -389,11 +404,12 @@ void lvgl_port_unlock(void)
     xSemaphoreGiveRecursive(lvgl_port_ctx.lvgl_mux);
 }
 
-void lvgl_port_flush_ready(lv_disp_t *disp)
+void lvgl_port_flush_ready(lv_display_t *disp)
 {
-    assert(disp);
-    assert(disp->driver);
-    lv_disp_flush_ready(disp->driver);
+    log_i("lvgl_port_flush_ready");
+    // assert(disp);
+    // assert(disp->driver);
+    // lv_disp_flush_ready(disp->driver);
 }
 
 /*******************************************************************************
@@ -446,9 +462,11 @@ static void lvgl_port_task_deinit(void)
 #if LVGL_PORT_HANDLE_FLUSH_READY
 static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx)
 {
+    log_i("lvgl_port_flush_ready_callback");
+    /*
     BaseType_t taskAwake = pdFALSE;
 
-    lv_disp_drv_t *disp_drv = (lv_disp_drv_t *)user_ctx;
+    lv_display_t *disp_drv = (lv_display_t *)user_ctx;
     assert(disp_drv != NULL);
     lvgl_port_display_ctx_t *disp_ctx = disp_drv->user_data;
     assert(disp_ctx != NULL);
@@ -457,15 +475,15 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
     {
         xSemaphoreGiveFromISR(disp_ctx->trans_done_sem, &taskAwake);
     }
-
+*/
     return false;
 }
 #endif
 
-static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
     assert(drv != NULL);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)drv->user_data;
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)dlv_display_get_user_data(drv);
     assert(disp_ctx != NULL);
 
     const int x_start = area->x1;
@@ -501,7 +519,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
         int max_height = 0;
         int trans_height = 0;
 
-        if (LV_DISP_ROT_270 == rotate || LV_DISP_ROT_90 == rotate)
+        if (LV_DISPLAY_ROTATION_270 == rotate || LV_DISPLAY_ROTATION_90 == rotate)
         {
             max_width = ((disp_ctx->trans_size / height) > width) ? (width) : (disp_ctx->trans_size / height);
             trans_count = width / max_width + (width % max_width ? (1) : (0));
@@ -521,17 +539,17 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
         for (int i = 0; i < trans_count; i++)
         {
 
-            if (LV_DISP_ROT_90 == rotate)
+            if (LV_DISPLAY_ROTATION_90 == rotate)
             {
                 trans_width = (x_end - x_start_tmp + 1) > max_width ? max_width : (x_end - x_start_tmp + 1);
                 x_end_tmp = (x_end - x_start_tmp + 1) > max_width ? (x_start_tmp + max_width - 1) : x_end;
             }
-            else if (LV_DISP_ROT_270 == rotate)
+            else if (LV_DISPLAY_ROTATION_270 == rotate)
             {
                 trans_width = (x_end_tmp - x_start + 1) > max_width ? max_width : (x_end_tmp - x_start + 1);
                 x_start_tmp = (x_end_tmp - x_start + 1) > max_width ? (x_end_tmp - trans_width + 1) : x_start;
             }
-            else if (LV_DISP_ROT_NONE == rotate)
+            else if (LV_DISPLAY_ROTATION_0 == rotate)
             {
                 trans_height = (y_end - y_start_tmp + 1) > max_height ? max_height : (y_end - y_start_tmp + 1);
                 y_end_tmp = (y_end - y_start_tmp + 1) > max_height ? (y_start_tmp + max_height - 1) : y_end;
@@ -547,7 +565,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
 
             switch (rotate)
             {
-            case LV_DISP_ROT_90:
+            case LV_DISPLAY_ROTATION_90:
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < trans_width; x++)
@@ -555,12 +573,13 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                         *(to + x * height + (height - y - 1)) = *(from + y * width + x_start_tmp + x);
                     }
                 }
-                x_draw_start = drv->ver_res - y_end - 1;
-                x_draw_end = drv->ver_res - y_start - 1;
+
+                x_draw_start = lv_display_get_vertical_resolution(drv) - y_end - 1;
+                x_draw_end = lv_display_get_vertical_resolution(drv) - y_start - 1;
                 y_draw_start = x_start_tmp;
                 y_draw_end = x_end_tmp;
                 break;
-            case LV_DISP_ROT_270:
+            case LV_DISPLAY_ROTATION_270:
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < trans_width; x++)
@@ -570,10 +589,10 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                 }
                 x_draw_start = y_start;
                 x_draw_end = y_end;
-                y_draw_start = drv->hor_res - x_end_tmp - 1;
-                y_draw_end = drv->hor_res - x_start_tmp - 1;
+                y_draw_start = lv_display_get_horizontal_resolution(drv) - x_end_tmp - 1;
+                y_draw_end = lv_display_get_horizontal_resolution(drv) - x_start_tmp - 1;
                 break;
-            case LV_DISP_ROT_180:
+            case LV_DISPLAY_ROTATION_180:
                 for (int y = 0; y < trans_height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -581,12 +600,12 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                         *(to + (trans_height - y - 1) * width + (width - x - 1)) = *(from + y_start_tmp * width + y * (width) + x);
                     }
                 }
-                x_draw_start = drv->hor_res - x_end - 1;
-                x_draw_end = drv->hor_res - x_start - 1;
-                y_draw_start = drv->ver_res - y_end_tmp - 1;
-                y_draw_end = drv->ver_res - y_start_tmp - 1;
+                x_draw_start = lv_display_get_horizontal_resolution(drv) - x_end - 1;
+                x_draw_end = lv_display_get_horizontal_resolution(drv) - x_start - 1;
+                y_draw_start = lv_display_get_vertical_resolution(drv) - y_end_tmp - 1;
+                y_draw_end = lv_display_get_vertical_resolution(drv) - y_start_tmp - 1;
                 break;
-            case LV_DISP_ROT_NONE:
+            case LV_DISPLAY_ROTATION_0:
                 for (int y = 0; y < trans_height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -615,15 +634,15 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
             xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
             esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1, to);
 
-            if (LV_DISP_ROT_90 == rotate)
+            if (LV_DISPLAY_ROTATION_90 == rotate)
             {
                 x_start_tmp += max_width;
             }
-            else if (LV_DISP_ROT_270 == rotate)
+            else if (LV_DISPLAY_ROTATION_270 == rotate)
             {
                 x_end_tmp -= max_width;
             }
-            if (LV_DISP_ROT_NONE == rotate)
+            if (LV_DISPLAY_ROTATION_0 == rotate)
             {
                 y_start_tmp += max_height;
             }
@@ -641,10 +660,10 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
 }
 
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
-static void lvgl_port_touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
 {
     assert(indev_drv);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)indev_drv->user_data;
+    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
     assert(touch_ctx->handle);
 
     uint16_t touchpad_x[1] = {0};

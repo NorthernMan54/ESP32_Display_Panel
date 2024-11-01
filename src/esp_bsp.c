@@ -76,10 +76,10 @@ typedef struct {
 
 typedef struct {
     SemaphoreHandle_t tp_intr_event;    /*!< Semaphore for tp interrupt */
-    lv_disp_rot_t rotate;               /*!< Rotation configuration for the display */
+    lv_display_rotation_t rotate;               /*!< Rotation configuration for the display */
 } bsp_touch_int_t;
 
-static lv_disp_t *disp;
+static lv_display_t *disp;
 static lv_indev_t *disp_indev = NULL;
 static esp_lcd_touch_handle_t tp = NULL;   // LCD touch handle
 static esp_lcd_panel_handle_t panel_handle = NULL;
@@ -327,7 +327,7 @@ err:
     return ret;
 }
 
-static lv_disp_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
+static lv_display_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
 {
     assert(cfg != NULL);
     esp_lcd_panel_io_handle_t io_handle = NULL;
@@ -364,7 +364,7 @@ static lv_disp_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
         },
     };
 
-    if (disp_cfg.sw_rotate == LV_DISP_ROT_180 || disp_cfg.sw_rotate == LV_DISP_ROT_NONE) {
+    if (disp_cfg.sw_rotate == LV_DISP_ROTATION_180 || disp_cfg.sw_rotate == LV_DISP_ROTATION_0) {
         disp_cfg.hres = hres;
         disp_cfg.vres = vres;
     } else {
@@ -410,15 +410,15 @@ static void bsp_touch_process_points_cb(esp_lcd_touch_handle_t tp, uint16_t *x, 
     bsp_touch_int_t *touch_handle = (bsp_touch_int_t *)tp->config.user_data;
 
     for (int i = 0; i < *point_num; i++) {
-        if (LV_DISP_ROT_270 == touch_handle->rotate) {
+        if (LV_DISP_ROTATION_270 == touch_handle->rotate) {
             tmp = x[i];
             x[i] = tp->config.y_max - y[i];
             y[i] = tmp;
-        } else if (LV_DISP_ROT_180 == touch_handle->rotate) {
+        } else if (LV_DISP_ROTATION_180 == touch_handle->rotate) {
             tmp = x[i];
             x[i] = tp->config.x_max - x[i];
             y[i] = tp->config.y_max - y[i];
-        } else if (LV_DISP_ROT_90 == touch_handle->rotate) {
+        } else if (LV_DISP_ROTATION_90 == touch_handle->rotate) {
             tmp = x[i];
             x[i] = y[i];
             y[i] = tp->config.x_max - tmp;
@@ -495,7 +495,7 @@ err:
     return ret;
 }
 
-static lv_indev_t *bsp_display_indev_init(const bsp_display_cfg_t *config, lv_disp_t *disp)
+static lv_indev_t *bsp_display_indev_init(const bsp_display_cfg_t *config, lv_display_t *disp)
 {
     BSP_ERROR_CHECK_RETURN_NULL(bsp_touch_new(config, &tp));
     assert(tp);
@@ -510,7 +510,7 @@ static lv_indev_t *bsp_display_indev_init(const bsp_display_cfg_t *config, lv_di
     return lvgl_port_add_touch(&touch_cfg);
 }
 
-lv_disp_t *bsp_display_start_with_config(const bsp_display_cfg_t *cfg)
+lv_display_t *bsp_display_start_with_config(const bsp_display_cfg_t *cfg)
 {
     BSP_ERROR_CHECK_RETURN_NULL(lvgl_port_init(&cfg->lvgl_port_cfg));
 
