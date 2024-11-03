@@ -242,7 +242,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
         disp_ctx->trans_done_sem = trans_done_sem;
     }
 
-    lv_disp_draw_buf_t *disp_buf = malloc(sizeof(lv_disp_draw_buf_t));
+    void *disp_buf = malloc(sizeof(void));
     ESP_GOTO_ON_FALSE(disp_buf, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL display buffer allocation!");
 
     /* initialize LVGL draw buffers */
@@ -397,8 +397,9 @@ void lvgl_port_unlock(void)
 void lvgl_port_flush_ready(lv_disp_t *disp)
 {
     assert(disp);
-    assert(disp->driver);
-    lv_disp_flush_ready(disp->driver);
+    // assert(disp->driver);
+    // lv_disp_flush_ready(disp->driver);
+    lv_disp_flush_ready(disp);
 }
 
 /*******************************************************************************
