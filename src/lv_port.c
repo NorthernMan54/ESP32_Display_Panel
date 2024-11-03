@@ -54,7 +54,7 @@ typedef struct
     lv_color_t *trans_buf_2;          /* Buffer send to driver */
     lv_color_t *trans_act;            /* Active buffer for sending to driver */
     SemaphoreHandle_t trans_done_sem; /* Semaphore for signaling idle transfer */
-    lv_display_rotation_t sw_rotate;          /* Panel software rotation mask */
+    lv_display_rotation_t sw_rotate;  /* Panel software rotation mask */
 
     lvgl_port_wait_cb draw_wait_cb; /* Callback function for drawing */
 } lvgl_port_display_ctx_t;
@@ -300,31 +300,31 @@ err:
 esp_err_t lvgl_port_remove_disp(lv_disp_t *disp)
 {
     assert(disp);
-//    lv_disp_drv_t *disp_drv = disp->driver;
-//    assert(disp_drv);
+    //    lv_disp_drv_t *disp_drv = disp->driver;
+    //    assert(disp_drv);
     lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(disp);
 
     lv_disp_remove(disp);
-/*
-    if (disp_drv)
-    {
-        if (disp_drv->draw_buf && disp_drv->draw_buf->buf1)
+    /*
+        if (disp_drv)
         {
-            free(disp_drv->draw_buf->buf1);
-            disp_drv->draw_buf->buf1 = NULL;
+            if (disp_drv->draw_buf && disp_drv->draw_buf->buf1)
+            {
+                free(disp_drv->draw_buf->buf1);
+                disp_drv->draw_buf->buf1 = NULL;
+            }
+            if (disp_drv->draw_buf && disp_drv->draw_buf->buf2)
+            {
+                free(disp_drv->draw_buf->buf2);
+                disp_drv->draw_buf->buf2 = NULL;
+            }
+            if (disp_drv->draw_buf)
+            {
+                free(disp_drv->draw_buf);
+                disp_drv->draw_buf = NULL;
+            }
         }
-        if (disp_drv->draw_buf && disp_drv->draw_buf->buf2)
-        {
-            free(disp_drv->draw_buf->buf2);
-            disp_drv->draw_buf->buf2 = NULL;
-        }
-        if (disp_drv->draw_buf)
-        {
-            free(disp_drv->draw_buf);
-            disp_drv->draw_buf = NULL;
-        }
-    }
-*/
+    */
 
     free(disp_ctx);
 
@@ -353,11 +353,11 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, lvgl_port_touchpad_read);
 
- //   lv_indev_drv_init(&touch_ctx->indev_drv);
- //   touch_ctx->indev_drv.type = LV_INDEV_TYPE_POINTER;
- //   touch_ctx->indev_drv.disp = touch_cfg->disp;
- //   touch_ctx->indev_drv.read_cb = lvgl_port_touchpad_read;
- //   touch_ctx->indev_drv.user_data = touch_ctx;
+    //   lv_indev_drv_init(&touch_ctx->indev_drv);
+    //   touch_ctx->indev_drv.type = LV_INDEV_TYPE_POINTER;
+    //   touch_ctx->indev_drv.disp = touch_cfg->disp;
+    //   touch_ctx->indev_drv.read_cb = lvgl_port_touchpad_read;
+    //   touch_ctx->indev_drv.user_data = touch_ctx;
     return indev;
 }
 
