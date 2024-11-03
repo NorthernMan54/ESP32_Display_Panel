@@ -463,7 +463,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
         int max_height = 0;
         int trans_height = 0;
 
-        if (LV_DISP_ROT_270 == rotate || LV_DISP_ROT_90 == rotate) {
+        if (LV_DISPLAY_ROTATION_270 == rotate || LV_DISPLAY_ROTATION_90 == rotate) {
             max_width = ((disp_ctx->trans_size / height) > width) ? (width) : (disp_ctx->trans_size / height);
             trans_count = width / max_width + (width % max_width ? (1) : (0));
 
@@ -479,13 +479,13 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
 
         for (int i = 0; i < trans_count; i++) {
 
-            if (LV_DISP_ROT_90 == rotate) {
+            if (LV_DISPLAY_ROTATION_90 == rotate) {
                 trans_width = (x_end - x_start_tmp + 1) > max_width ? max_width : (x_end - x_start_tmp + 1);
                 x_end_tmp = (x_end - x_start_tmp + 1) > max_width ? (x_start_tmp + max_width - 1) : x_end;
-            } else if (LV_DISP_ROT_270 == rotate) {
+            } else if (LV_DISPLAY_ROTATION_270 == rotate) {
                 trans_width = (x_end_tmp - x_start + 1) > max_width ? max_width : (x_end_tmp - x_start + 1);
                 x_start_tmp = (x_end_tmp - x_start + 1) > max_width ? (x_end_tmp - trans_width + 1) : x_start;
-            } else if (LV_DISP_ROT_NONE == rotate) {
+            } else if (LV_DISPLAY_ROTATION_0 == rotate) {
                 trans_height = (y_end - y_start_tmp + 1) > max_height ? max_height : (y_end - y_start_tmp + 1);
                 y_end_tmp = (y_end - y_start_tmp + 1) > max_height ? (y_start_tmp + max_height - 1) : y_end;
             } else {
@@ -497,7 +497,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
             to = disp_ctx->trans_act;
 
             switch (rotate) {
-            case LV_DISP_ROT_90:
+            case LV_DISPLAY_ROTATION_90:
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < trans_width; x++) {
                         *(to + x * height + (height - y - 1)) = *(from + y * width + x_start_tmp + x);
@@ -508,7 +508,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                 y_draw_start = x_start_tmp;
                 y_draw_end = x_end_tmp;
                 break;
-            case LV_DISP_ROT_270:
+            case LV_DISPLAY_ROTATION_270:
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < trans_width; x++) {
                         *(to + (trans_width - x - 1) * height + y) = *(from + y * width + x_start_tmp + x);
@@ -519,7 +519,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                 y_draw_start = drv->hor_res - x_end_tmp - 1;
                 y_draw_end = drv->hor_res - x_start_tmp - 1;
                 break;
-            case LV_DISP_ROT_180:
+            case LV_DISPLAY_ROTATION_180:
                 for (int y = 0; y < trans_height; y++) {
                     for (int x = 0; x < width; x++) {
                         *(to + (trans_height - y - 1)*width + (width - x - 1)) = *(from + y_start_tmp * width + y * (width) + x);
@@ -530,7 +530,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                 y_draw_start = drv->ver_res - y_end_tmp - 1;
                 y_draw_end = drv->ver_res - y_start_tmp - 1;
                 break;
-            case LV_DISP_ROT_NONE:
+            case LV_DISPLAY_ROTATION_0:
                 for (int y = 0; y < trans_height; y++) {
                     for (int x = 0; x < width; x++) {
                         *(to + y * (width) + x) = *(from + y_start_tmp * width + y * (width) + x);
@@ -555,11 +555,11 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
             xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
             esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1, to);
 
-            if (LV_DISP_ROT_90 == rotate) {
+            if (LV_DISPLAY_ROTATION_90 == rotate) {
                 x_start_tmp += max_width;
-            } else if (LV_DISP_ROT_270 == rotate) {
+            } else if (LV_DISPLAY_ROTATION_270 == rotate) {
                 x_end_tmp -= max_width;
-            } if (LV_DISP_ROT_NONE == rotate) {
+            } if (LV_DISPLAY_ROTATION_0 == rotate) {
                 y_start_tmp += max_height;
             } else {
                 y_end_tmp -= max_height;
