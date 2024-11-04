@@ -75,7 +75,7 @@ typedef struct
 typedef struct
 {
     esp_lcd_touch_handle_t handle;   /* LCD touch IO handle */
-    lv_indev_drv_t indev_drv;        /* LVGL input device driver */
+    lv_indev_t * indev_drv;        /* LVGL input device driver */
     lvgl_port_wait_cb touch_wait_cb; /* Callback function for touch */
 } lvgl_port_touch_ctx_t;
 #endif
@@ -99,7 +99,7 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 #endif
 static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map);
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
-static void lvgl_port_touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data);
+static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data);
 #endif
 /*******************************************************************************
  * Public API functions
@@ -359,21 +359,26 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
     touch_ctx->handle = touch_cfg->handle;
     touch_ctx->touch_wait_cb = touch_cfg->touch_wait_cb;
 
+    lv_indev_t * indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, lvgl_port_touchpad_read);
+
     /* Register a touchpad input device */
-    lv_indev_drv_init(&touch_ctx->indev_drv);
-    touch_ctx->indev_drv.type = LV_INDEV_TYPE_POINTER;
-    touch_ctx->indev_drv.disp = touch_cfg->disp;
-    touch_ctx->indev_drv.read_cb = lvgl_port_touchpad_read;
-    touch_ctx->indev_drv.user_data = touch_ctx;
-    return lv_indev_drv_register(&touch_ctx->indev_drv);
+  //  lv_indev_drv_init(&touch_ctx->indev_drv);
+  //  touch_ctx->indev_drv.type = LV_INDEV_TYPE_POINTER;
+  //  touch_ctx->indev_drv.disp = touch_cfg->disp;
+  //  touch_ctx->indev_drv.read_cb = lvgl_port_touchpad_read;
+  //  touch_ctx->indev_drv.user_data = touch_ctx;
+    lv_indev_set_user_data(indev, touch_ctx);
+    return indev;
 }
 
 esp_err_t lvgl_port_remove_touch(lv_indev_t *touch)
 {
     assert(touch);
-    lv_indev_drv_t *indev_drv = touch->driver;
-    assert(indev_drv);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)indev_drv->user_data;
+ //   lv_indev_drv_t *indev_drv = touch->driver;
+ //   assert(indev_drv);
+    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(touch);
 
     /* Remove input device driver */
     lv_indev_delete(touch);
@@ -653,10 +658,10 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
 }
 
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
-static void lvgl_port_touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
 {
     assert(indev_drv);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)indev_drv->user_data;
+    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
     assert(touch_ctx->handle);
 
     uint16_t touchpad_x[1] = {0};
