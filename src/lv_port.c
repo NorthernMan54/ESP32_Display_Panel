@@ -31,6 +31,17 @@
 
 static const char *TAG = "LVGL";
 
+void * memset(void * s, int c, size_t n)
+{
+    uint8_t * s_8 = (uint8_t *)s;
+
+    while(n-- > 0) {
+        *s_8++ = (uint8_t)c;
+    }
+
+    return s;
+}
+
 /*******************************************************************************
  * Types definitions
  *******************************************************************************/
@@ -252,6 +263,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     ESP_LOGD(TAG, "Register display driver to LVGL");
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
+    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size, mode);
 
     // lv_disp_drv_init(&disp_ctx->disp_drv);
  //   disp_ctx->disp_drv.hor_res = disp_cfg->hres;
