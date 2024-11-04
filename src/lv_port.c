@@ -66,7 +66,7 @@ typedef struct
     lv_color_t *trans_buf_2;          /* Buffer send to driver */
     lv_color_t *trans_act;            /* Active buffer for sending to driver */
     SemaphoreHandle_t trans_done_sem; /* Semaphore for signaling idle transfer */
-    lv_disp_rot_t sw_rotate;          /* Panel software rotation mask */
+    lv_display_rotation_t sw_rotate;          /* Panel software rotation mask */
 
     lvgl_port_wait_cb draw_wait_cb; /* Callback function for drawing */
 } lvgl_port_display_ctx_t;
