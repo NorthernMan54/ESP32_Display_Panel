@@ -202,6 +202,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 
     /* Display context */
     lvgl_port_display_ctx_t *disp_ctx = malloc(sizeof(lvgl_port_display_ctx_t));
+
     ESP_GOTO_ON_FALSE(disp_ctx, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for display context allocation!");
     disp_ctx->io_handle = disp_cfg->io_handle;
     disp_ctx->panel_handle = disp_cfg->panel_handle;
@@ -293,7 +294,7 @@ err:
             free(disp_ctx);
         }
     }
-
+    lv_display_set_user_data(disp, disp_ctx);
     return disp;
 }
 
@@ -468,10 +469,11 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 }
 #endif
 
-static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+static void lvgl_port_flush_callback(lv_disp_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
     assert(drv != NULL);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)drv->user_data;
+    // lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)drv->user_data;
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(drv);
     assert(disp_ctx != NULL);
 
     const int x_start = area->x1;
@@ -561,8 +563,8 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                         *(to + x * height + (height - y - 1)) = *(from + y * width + x_start_tmp + x);
                     }
                 }
-                x_draw_start = drv->ver_res - y_end - 1;
-                x_draw_end = drv->ver_res - y_start - 1;
+                x_draw_start = lv_display_get_vertical_resolution(drv) - y_end - 1;
+                x_draw_end = lv_display_get_vertical_resolution(drv) - y_start - 1;
                 y_draw_start = x_start_tmp;
                 y_draw_end = x_end_tmp;
                 break;
@@ -576,8 +578,8 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                 }
                 x_draw_start = y_start;
                 x_draw_end = y_end;
-                y_draw_start = drv->hor_res - x_end_tmp - 1;
-                y_draw_end = drv->hor_res - x_start_tmp - 1;
+                y_draw_start = lv_display_get_horizontal_resolution(drv) - x_end_tmp - 1;
+                y_draw_end = lv_display_get_horizontal_resolution(drv) - x_start_tmp - 1;
                 break;
             case LV_DISPLAY_ROTATION_180:
                 for (int y = 0; y < trans_height; y++)
@@ -587,10 +589,10 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
                         *(to + (trans_height - y - 1) * width + (width - x - 1)) = *(from + y_start_tmp * width + y * (width) + x);
                     }
                 }
-                x_draw_start = drv->hor_res - x_end - 1;
-                x_draw_end = drv->hor_res - x_start - 1;
-                y_draw_start = drv->ver_res - y_end_tmp - 1;
-                y_draw_end = drv->ver_res - y_start_tmp - 1;
+                x_draw_start = lv_display_get_horizontal_resolution(drv) - x_end - 1;
+                x_draw_end = lv_display_get_horizontal_resolution(drv) - x_start - 1;
+                y_draw_start = lv_display_get_vertical_resolution(drv) - y_end_tmp - 1;
+                y_draw_end = lv_display_get_vertical_resolution(drv) - y_start_tmp - 1;
                 break;
             case LV_DISPLAY_ROTATION_0:
                 for (int y = 0; y < trans_height; y++)
