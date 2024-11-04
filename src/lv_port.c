@@ -31,11 +31,12 @@
 
 static const char *TAG = "LVGL";
 
-void * memset(void * s, int c, size_t n)
+void *memset(void *s, int c, size_t n)
 {
-    uint8_t * s_8 = (uint8_t *)s;
+    uint8_t *s_8 = (uint8_t *)s;
 
-    while(n-- > 0) {
+    while (n-- > 0)
+    {
         *s_8++ = (uint8_t)c;
     }
 
@@ -58,7 +59,7 @@ typedef struct
 {
     esp_lcd_panel_io_handle_t io_handle; /* LCD panel IO handle */
     esp_lcd_panel_handle_t panel_handle; /* LCD panel handle */
-    lv_disp_t * disp_drv;              /* LVGL display driver */
+    lv_disp_t *disp_drv;                 /* LVGL display driver */
 
     uint32_t trans_size;              /* Maximum size for one transport */
     lv_color_t *trans_buf_1;          /* Buffer send to driver */
@@ -258,22 +259,22 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     ESP_GOTO_ON_FALSE(disp_buf, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL display buffer allocation!");
 
     /* initialize LVGL draw buffers */
-    lv_disp_draw_buf_init(disp_buf, buf1, NULL, disp_cfg->buffer_size);
+    // lv_disp_draw_buf_init(disp_buf, buf1, NULL, disp_cfg->buffer_size);
 
     ESP_LOGD(TAG, "Register display driver to LVGL");
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
-    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size, mode);
+    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     // lv_disp_drv_init(&disp_ctx->disp_drv);
- //   disp_ctx->disp_drv.hor_res = disp_cfg->hres;
- //   disp_ctx->disp_drv.ver_res = disp_cfg->vres;
+    //   disp_ctx->disp_drv.hor_res = disp_cfg->hres;
+    //   disp_ctx->disp_drv.ver_res = disp_cfg->vres;
     // disp_ctx->disp_drv.flush_cb = lvgl_port_flush_callback;
 
-//    disp_ctx->disp_drv.draw_buf = disp_buf;
-//    disp_ctx->disp_drv.user_data = disp_ctx;
+    //    disp_ctx->disp_drv.draw_buf = disp_buf;
+    //    disp_ctx->disp_drv.user_data = disp_ctx;
     /* Force full_fresh */
-//    disp_ctx->disp_drv.full_refresh = 1;
+    //    disp_ctx->disp_drv.full_refresh = 1;
 
 #if LVGL_PORT_HANDLE_FLUSH_READY
     /* Register done callback */
@@ -283,7 +284,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     esp_lcd_panel_io_register_event_callbacks(disp_ctx->io_handle, &cbs, &disp_ctx->disp_drv);
 #endif
 
-    disp = lv_disp_drv_register(&disp_ctx->disp_drv);
+    //  disp = lv_disp_drv_register(&disp_ctx->disp_drv);
 
 err:
     if (ret != ESP_OK)
@@ -355,14 +356,14 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
     assert(touch_cfg->handle != NULL);
 
     /* Touch context */
-//    lvgl_port_touch_ctx_t *touch_ctx = malloc(sizeof(lvgl_port_touch_ctx_t));
-//    if (touch_ctx == NULL)
-//    {
-//        ESP_LOGE(TAG, "Not enough memory for touch context allocation!");
-//        return NULL;
-//    }
-  //  touch_ctx->handle = touch_cfg->handle;
-  //  touch_ctx->touch_wait_cb = touch_cfg->touch_wait_cb;
+    //    lvgl_port_touch_ctx_t *touch_ctx = malloc(sizeof(lvgl_port_touch_ctx_t));
+    //    if (touch_ctx == NULL)
+    //    {
+    //        ESP_LOGE(TAG, "Not enough memory for touch context allocation!");
+    //        return NULL;
+    //    }
+    //  touch_ctx->handle = touch_cfg->handle;
+    //  touch_ctx->touch_wait_cb = touch_cfg->touch_wait_cb;
 
     /* Register a touchpad input device */
     lv_indev_t *indev = lv_indev_create();
@@ -382,15 +383,15 @@ esp_err_t lvgl_port_remove_touch(lv_indev_t *indev_drv)
     //  assert(touch);
     //  lv_indev_t *indev_drv = touch->driver;
     assert(indev_drv);
- //   lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
+    //   lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
 
     /* Remove input device driver */
     lv_indev_delete(indev_drv);
 
- //   if (touch_ctx)
- //   {
- //       free(touch_ctx);
- //   }
+    //   if (touch_ctx)
+    //   {
+    //       free(touch_ctx);
+    //   }
 
     return ESP_OK;
 }
@@ -471,15 +472,15 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
     BaseType_t taskAwake = pdFALSE;
 
     ESP_LOGE(TAG, "Flush ready callback user_ctx %p", user_ctx);
- //   lv_disp_drv_t *disp_drv = (lv_disp_drv_t *)user_ctx;
- //   assert(disp_drv != NULL);
-//    lvgl_port_display_ctx_t *disp_ctx = disp_drv->user_data;
-//    assert(disp_ctx != NULL);
+    //   lv_disp_drv_t *disp_drv = (lv_disp_drv_t *)user_ctx;
+    //   assert(disp_drv != NULL);
+    //    lvgl_port_display_ctx_t *disp_ctx = disp_drv->user_data;
+    //    assert(disp_ctx != NULL);
 
-  //  if (disp_ctx->trans_done_sem)
-  //  {
+    //  if (disp_ctx->trans_done_sem)
+    //  {
     //    xSemaphoreGiveFromISR(disp_ctx->trans_done_sem, &taskAwake);
-  //  }
+    //  }
 
     return false;
 }
@@ -668,36 +669,35 @@ static void lvgl_port_flush_callback(lv_disp_t *drv, const lv_area_t *area, lv_c
 static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
 {
     assert(indev_drv);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
-    assert(touch_ctx->handle);
+    // lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
+    //  assert(touch_ctx->handle);
 
     uint16_t touchpad_x[1] = {0};
     uint16_t touchpad_y[1] = {0};
     uint8_t touchpad_cnt = 0;
 
     /* Read data from touch controller into memory */
-    bool touch_int = false;
-    if (touch_ctx->touch_wait_cb)
-    {
-        touch_int = touch_ctx->touch_wait_cb(touch_ctx->handle->config.user_data);
-    }
-    if (touch_int)
-    {
-        esp_lcd_touch_read_data(touch_ctx->handle);
-        /* Read data from touch controller */
-        bool touchpad_pressed = esp_lcd_touch_get_coordinates(touch_ctx->handle, touchpad_x, touchpad_y, NULL, &touchpad_cnt, 1);
+    //  bool touch_int = false;
+    //  if (touch_ctx->touch_wait_cb)
+    //  {
+    //      touch_int = touch_ctx->touch_wait_cb(touch_ctx->handle->config.user_data);
+    //  }
+    //  if (touch_int)
+    //  {
+    esp_lcd_touch_read_data(lv_indev_get_read_cb);
+    /* Read data from touch controller */
+    bool touchpad_pressed = esp_lcd_touch_get_coordinates(touch_ctx->handle, touchpad_x, touchpad_y, NULL, &touchpad_cnt, 1);
 
-        if (touchpad_pressed && touchpad_cnt > 0)
-        {
-            data->point.x = touchpad_x[0];
-            data->point.y = touchpad_y[0];
-            data->state = LV_INDEV_STATE_PRESSED;
-            esp_rom_printf("Touchpad pressed: x=%d, y=%d\n", data->point.x, data->point.y);
-        }
-        else
-        {
-            data->state = LV_INDEV_STATE_RELEASED;
-        }
+    if (touchpad_pressed && touchpad_cnt > 0)
+    {
+        data->point.x = touchpad_x[0];
+        data->point.y = touchpad_y[0];
+        data->state = LV_INDEV_STATE_PRESSED;
+        esp_rom_printf("Touchpad pressed: x=%d, y=%d\n", data->point.x, data->point.y);
+    }
+    else
+    {
+        data->state = LV_INDEV_STATE_RELEASED;
     }
 }
 #endif
