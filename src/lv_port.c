@@ -319,12 +319,13 @@ err:
 esp_err_t lvgl_port_remove_disp(lv_disp_t *disp)
 {
     assert(disp);
-    lv_disp_drv_t *disp_drv = disp->driver;
-    assert(disp_drv);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)disp_drv->user_data;
+ //   lv_disp_drv_t *disp_drv = disp->driver;
+ //   assert(disp_drv);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(disp);
 
     lv_disp_remove(disp);
 
+/*
     if (disp_drv)
     {
         if (disp_drv->draw_buf && disp_drv->draw_buf->buf1)
@@ -343,7 +344,7 @@ esp_err_t lvgl_port_remove_disp(lv_disp_t *disp)
             disp_drv->draw_buf = NULL;
         }
     }
-
+*/
     free(disp_ctx);
 
     return ESP_OK;
@@ -474,7 +475,7 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 
     lv_disp_drv_t *disp_drv = (lv_disp_drv_t *)user_ctx;
     assert(disp_drv != NULL);
-    lvgl_port_display_ctx_t *disp_ctx = disp_drv->user_data;
+    lvgl_port_display_ctx_t *disp_ctx =  lv_display_get_user_data(disp)(drv);
     assert(disp_ctx != NULL);
 
     if (disp_ctx->trans_done_sem)
