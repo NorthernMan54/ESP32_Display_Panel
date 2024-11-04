@@ -233,6 +233,7 @@ static const axs15231b_lcd_init_cmd_t vendor_specific_init_default[] = {
 
 static esp_err_t panel_axs15231b_init(esp_lcd_panel_t *panel)
 {
+        ESP_LOGE(TAG, "panel_axs15231b_init");
     axs15231b_panel_t *axs15231b = __containerof(panel, axs15231b_panel_t, base);
     esp_lcd_panel_io_handle_t io = axs15231b->io;
 
@@ -286,6 +287,7 @@ static esp_err_t panel_axs15231b_init(esp_lcd_panel_t *panel)
 
 static esp_err_t panel_axs15231b_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end, int y_end, const void *color_data)
 {
+    ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_end, y_end);
     axs15231b_panel_t *axs15231b = __containerof(panel, axs15231b_panel_t, base);
     assert((x_start < x_end) && (y_start < y_end) && "start position must be smaller than end position");
     esp_lcd_panel_io_handle_t io = axs15231b->io;
@@ -320,6 +322,7 @@ static esp_err_t panel_axs15231b_draw_bitmap(esp_lcd_panel_t *panel, int x_start
         tx_color(axs15231b, io, LCD_CMD_RAMWRC, color_data, len);//3C
     }
 
+    ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap done");
     return ESP_OK;
 }
 
