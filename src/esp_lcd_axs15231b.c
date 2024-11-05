@@ -160,7 +160,9 @@ static esp_err_t tx_color(axs15231b_panel_t *axs15231b, esp_lcd_panel_io_handle_
         lcd_cmd <<= 8;
         lcd_cmd |= LCD_OPCODE_WRITE_COLOR << 24;
     }
-    return esp_lcd_panel_io_tx_color(io, lcd_cmd, param, param_size);
+    ESP_LOGE(TAG, "tx_color: axs15231b: %p, io: %p, lcd_cmd: %0x, param: %p, param_size %i", axs15231b, io, lcd_cmd, param, param_size);
+    // return esp_lcd_panel_io_tx_color(io, lcd_cmd, param, param_size);
+    return ESP_OK;
 }
 
 static esp_err_t panel_axs15231b_del(esp_lcd_panel_t *panel)
@@ -297,6 +299,7 @@ static esp_err_t panel_axs15231b_draw_bitmap(esp_lcd_panel_t *panel, int x_start
     y_start += axs15231b->y_gap;
     y_end += axs15231b->y_gap;
 
+ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_end, y_end);
     // define an area of frame memory where MCU can access
     tx_param(axs15231b, io, LCD_CMD_CASET, (uint8_t[]) {
         (x_start >> 8) & 0xFF,
@@ -314,8 +317,10 @@ static esp_err_t panel_axs15231b_draw_bitmap(esp_lcd_panel_t *panel, int x_start
         }, 4);
     }
 
+ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap transfer frame buffer");
     // transfer frame buffer
     size_t len = (x_end - x_start) * (y_end - y_start) * axs15231b->fb_bits_per_pixel / 8;
+    ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap transfer frame buffer %d, y_start %d", len, y_start);
     if (y_start == 0) {
         tx_color(axs15231b, io, LCD_CMD_RAMWR, color_data, len);//2C
     } else {

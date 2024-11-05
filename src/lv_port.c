@@ -212,6 +212,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     assert(disp_cfg->hres > 0);
     assert(disp_cfg->vres > 0);
 
+    LV_LOG_INFO("Add display to LVGL trans_size %d, sw_rotate %d, buffer_size %d, hres %d, vres %d", disp_cfg->trans_size, disp_cfg->sw_rotate, disp_cfg->buffer_size, disp_cfg->hres, disp_cfg->vres);
     /* Display context */
     lvgl_port_display_ctx_t *disp_ctx = malloc(sizeof(lvgl_port_display_ctx_t));
     ESP_GOTO_ON_FALSE(disp_ctx, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for display context allocation!");
@@ -233,19 +234,18 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 
     /* alloc draw buffers used by LVGL */
     /* it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized */
-    buf1 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(unsigned char), buff_caps);
+    buf1 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color_t), buff_caps);
     ESP_GOTO_ON_FALSE(buf1, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf1) allocation!");
 
     if (disp_ctx->trans_size)
     {
-
         uint32_t caps = MALLOC_CAP_DMA;
 
-        buf2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(unsigned char), caps);
+        buf2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color_t), caps);
         ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
         disp_ctx->trans_buf_1 = buf2;
 
-        buf3 = heap_caps_malloc(disp_ctx->trans_size * sizeof(unsigned char), caps);
+        buf3 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color_t), caps);
         ESP_GOTO_ON_FALSE(buf3, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
         disp_ctx->trans_buf_2 = buf3;
 
@@ -262,10 +262,11 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
-    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size * sizeof(unsigned char), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_DIRECT);
 
     disp_ctx->disp_drv = disp;
 
+    LV_LOG_INFO("hres, vres %d %d", disp_cfg->hres, disp_cfg->vres);
     ESP_LOGD(TAG, "Register display driver to LVGL");
     //  lv_disp_drv_init(&disp_ctx->disp_drv);
     // disp_ctx->disp_drv.hor_res = disp_cfg->hres;
@@ -406,15 +407,15 @@ bool lvgl_port_lock(uint32_t timeout_ms)
     assert(lvgl_port_ctx.lvgl_mux && "lvgl_port_init must be called first");
 
     const TickType_t timeout_ticks = (timeout_ms == 0) ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms);
-    // return xSemaphoreTakeRecursive(lvgl_port_ctx.lvgl_mux, timeout_ticks) == pdTRUE;
-    return true;
+    return xSemaphoreTakeRecursive(lvgl_port_ctx.lvgl_mux, timeout_ticks) == pdTRUE;
+    // return true;
 }
 
 void lvgl_port_unlock(void)
 {
     LV_LOG_INFO("lvgl_port_unlock");
     assert(lvgl_port_ctx.lvgl_mux && "lvgl_port_init must be called first");
-   //  xSemaphoreGiveRecursive(lvgl_port_ctx.lvgl_mux);
+   xSemaphoreGiveRecursive(lvgl_port_ctx.lvgl_mux);
 }
 
 void lvgl_port_flush_ready(lv_disp_t *disp)
@@ -486,7 +487,7 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 
     if (disp_ctx->trans_done_sem)
     {
-        // xSemaphoreGiveFromISR(disp_ctx->trans_done_sem, &taskAwake);
+        xSemaphoreGiveFromISR(disp_ctx->trans_done_sem, &taskAwake);
     }
 
     return false;
@@ -577,6 +578,11 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
             disp_ctx->trans_act = (disp_ctx->trans_act == disp_ctx->trans_buf_1) ? (disp_ctx->trans_buf_2) : (disp_ctx->trans_buf_1);
             to = disp_ctx->trans_act;
 
+    LV_LOG_INFO("lvgl_port_flush_callback trans_size %d, sw_rotate %d", disp_ctx->trans_size, disp_ctx->sw_rotate);
+    LV_LOG_INFO("lvgl_port_flush_callback from %p, to %p", from, to);
+    
+    // , disp_ctx->buffer_size, disp_ctx->hres, disp_ctx->vres);
+
             switch (rotate)
             {
             case LV_DISPLAY_ROTATION_90:
@@ -642,10 +648,10 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
                 {
                     disp_ctx->draw_wait_cb(disp_ctx->panel_handle->user_data);
                 }
-                // xSemaphoreGive(disp_ctx->trans_done_sem);
+                xSemaphoreGive(disp_ctx->trans_done_sem);
             }
 
-            // xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
+            xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
             LV_LOG_INFO("lvgl_port_flush_callback draw_bitmap %dx%d, %dx%d", x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1);
             esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1, to);
 
