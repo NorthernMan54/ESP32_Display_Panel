@@ -235,7 +235,7 @@ static const axs15231b_lcd_init_cmd_t vendor_specific_init_default[] = {
 
 static esp_err_t panel_axs15231b_init(esp_lcd_panel_t *panel)
 {
-        ESP_LOGE(TAG, "panel_axs15231b_init");
+    ESP_LOGE(TAG, "panel_axs15231b_init");
     axs15231b_panel_t *axs15231b = __containerof(panel, axs15231b_panel_t, base);
     esp_lcd_panel_io_handle_t io = axs15231b->io;
 
