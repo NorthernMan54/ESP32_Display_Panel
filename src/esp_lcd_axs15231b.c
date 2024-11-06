@@ -161,8 +161,8 @@ static esp_err_t tx_color(axs15231b_panel_t *axs15231b, esp_lcd_panel_io_handle_
         lcd_cmd |= LCD_OPCODE_WRITE_COLOR << 24;
     }
     ESP_LOGE(TAG, "tx_color: axs15231b: %p, io: %p, lcd_cmd: %0x, param: %p, param_size %i", axs15231b, io, lcd_cmd, param, param_size);
-    // return esp_lcd_panel_io_tx_color(io, lcd_cmd, param, param_size);
-    return ESP_OK;
+    return esp_lcd_panel_io_tx_color(io, lcd_cmd, param, param_size);
+    // return ESP_OK;
 }
 
 static esp_err_t panel_axs15231b_del(esp_lcd_panel_t *panel)

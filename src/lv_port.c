@@ -62,9 +62,9 @@ typedef struct
     lv_display_t *disp_drv;              /* LVGL display driver */
 
     uint32_t trans_size;              /* Maximum size for one transport */
-    unsigned char *trans_buf_1;       /* Buffer send to driver */
-    unsigned char *trans_buf_2;       /* Buffer send to driver */
-    unsigned char *trans_act;         /* Active buffer for sending to driver */
+    lv_color_t *trans_buf_1;       /* Buffer send to driver */
+    lv_color_t *trans_buf_2;       /* Buffer send to driver */
+    lv_color_t *trans_act;         /* Active buffer for sending to driver */
     SemaphoreHandle_t trans_done_sem; /* Semaphore for signaling idle transfer */
     lv_display_rotation_t sw_rotate;  /* Panel software rotation mask */
 
@@ -97,7 +97,7 @@ static void lvgl_port_task_deinit(void);
 #if LVGL_PORT_HANDLE_FLUSH_READY
 static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 #endif
-static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, unsigned char *color_map);
+static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map);
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
 static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data);
 #endif
@@ -200,9 +200,9 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
 {
     esp_err_t ret = ESP_OK;
     lv_disp_t *disp = NULL;
-    unsigned char *buf1 = NULL;
-    unsigned char *buf2 = NULL;
-    unsigned char *buf3 = NULL;
+    lv_color_t *buf1 = NULL;
+    lv_color_t *buf2 = NULL;
+    lv_color_t *buf3 = NULL;
     SemaphoreHandle_t trans_done_sem = NULL;
 
     assert(disp_cfg != NULL);
@@ -494,7 +494,7 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 }
 #endif
 
-static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, unsigned char *color_map)
+static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
     LV_LOG_INFO("lvgl_port_flush_callback %dx%d, %dx%d", area->x1, area->y1, area->x2, area->y2);
     assert(drv != NULL);
@@ -508,8 +508,8 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
     const int width = x_end - x_start + 1;
     const int height = y_end - y_start + 1;
 
-    unsigned char *from = color_map;
-    unsigned char *to = NULL;
+    lv_color_t *from = color_map;
+    lv_color_t *to = NULL;
 
     if (disp_ctx->trans_size)
     {
