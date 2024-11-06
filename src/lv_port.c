@@ -62,9 +62,9 @@ typedef struct
     lv_display_t *disp_drv;              /* LVGL display driver */
 
     uint32_t trans_size;              /* Maximum size for one transport */
-    lv_color_t *trans_buf_1;       /* Buffer send to driver */
-    lv_color_t *trans_buf_2;       /* Buffer send to driver */
-    lv_color_t *trans_act;         /* Active buffer for sending to driver */
+    lv_color_t *trans_buf_1;          /* Buffer send to driver */
+    lv_color_t *trans_buf_2;          /* Buffer send to driver */
+    lv_color_t *trans_act;            /* Active buffer for sending to driver */
     SemaphoreHandle_t trans_done_sem; /* Semaphore for signaling idle transfer */
     lv_display_rotation_t sw_rotate;  /* Panel software rotation mask */
 
@@ -97,7 +97,7 @@ static void lvgl_port_task_deinit(void);
 #if LVGL_PORT_HANDLE_FLUSH_READY
 static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 #endif
-static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map);
+static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, uint8_t *px_map);
 #ifdef ESP_LVGL_PORT_TOUCH_COMPONENT
 static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data);
 #endif
@@ -261,6 +261,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     //  lv_disp_draw_buf_init(disp_buf, buf1, NULL, disp_cfg->buffer_size);
 
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
+    // (lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
     lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_DIRECT);
 
@@ -415,7 +416,7 @@ void lvgl_port_unlock(void)
 {
     LV_LOG_INFO("lvgl_port_unlock");
     assert(lvgl_port_ctx.lvgl_mux && "lvgl_port_init must be called first");
-   xSemaphoreGiveRecursive(lvgl_port_ctx.lvgl_mux);
+    xSemaphoreGiveRecursive(lvgl_port_ctx.lvgl_mux);
 }
 
 void lvgl_port_flush_ready(lv_disp_t *disp)
@@ -494,9 +495,10 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 }
 #endif
 
-static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, lv_color_t *color_map)
+static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, uint8_t *px_map)
 {
     LV_LOG_INFO("lvgl_port_flush_callback %dx%d, %dx%d", area->x1, area->y1, area->x2, area->y2);
+    lv_color_t *color_map = (lv_color_t *)px_map;
     assert(drv != NULL);
     lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(drv);
     assert(disp_ctx != NULL);
@@ -578,10 +580,10 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, l
             disp_ctx->trans_act = (disp_ctx->trans_act == disp_ctx->trans_buf_1) ? (disp_ctx->trans_buf_2) : (disp_ctx->trans_buf_1);
             to = disp_ctx->trans_act;
 
-    LV_LOG_INFO("lvgl_port_flush_callback trans_size %d, sw_rotate %d", disp_ctx->trans_size, disp_ctx->sw_rotate);
-    LV_LOG_INFO("lvgl_port_flush_callback from %p, to %p", from, to);
-    
-    // , disp_ctx->buffer_size, disp_ctx->hres, disp_ctx->vres);
+            LV_LOG_INFO("lvgl_port_flush_callback trans_size %d, sw_rotate %d", disp_ctx->trans_size, disp_ctx->sw_rotate);
+            LV_LOG_INFO("lvgl_port_flush_callback from %p, to %p", from, to);
+
+            // , disp_ctx->buffer_size, disp_ctx->hres, disp_ctx->vres);
 
             switch (rotate)
             {
