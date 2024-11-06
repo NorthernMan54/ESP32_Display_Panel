@@ -556,7 +556,7 @@ static void lvgl_port_flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, 
 
             xSemaphoreTake(disp_ctx->trans_done_sem, portMAX_DELAY);
             
-            LV_LOG_INFO("esp_lcd_panel_draw_bitmap calling bitmap %dx%d, %dx%d", x_draw_start, y_draw_start, x_draw_end, y_draw_end);
+            LV_LOG_INFO("esp_lcd_panel_draw_bitmap calling bitmap %dx%d, %dx%d", x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1);
             esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_draw_start, y_draw_start, x_draw_end + 1, y_draw_end + 1, to);
 
             if (LV_DISP_ROT_90 == rotate) {
