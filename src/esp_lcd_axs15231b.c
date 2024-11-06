@@ -160,9 +160,8 @@ static esp_err_t tx_color(axs15231b_panel_t *axs15231b, esp_lcd_panel_io_handle_
         lcd_cmd <<= 8;
         lcd_cmd |= LCD_OPCODE_WRITE_COLOR << 24;
     }
-    ESP_LOGE(TAG, "tx_color: axs15231b: %p, io: %p, lcd_cmd: %0x, param: %p, param_size %i", axs15231b, io, lcd_cmd, param, param_size);
+    // ESP_LOGE(TAG, "tx_color: axs15231b: %p, io: %p, lcd_cmd: %0x, param: %p, param_size %i, qspi: %i, io: %p", axs15231b, io, lcd_cmd, param, param_size, axs15231b->flags.use_qspi_interface, &io);
     return esp_lcd_panel_io_tx_color(io, lcd_cmd, param, param_size);
-    // return ESP_OK;
 }
 
 static esp_err_t panel_axs15231b_del(esp_lcd_panel_t *panel)
@@ -235,7 +234,7 @@ static const axs15231b_lcd_init_cmd_t vendor_specific_init_default[] = {
 
 static esp_err_t panel_axs15231b_init(esp_lcd_panel_t *panel)
 {
-    ESP_LOGE(TAG, "panel_axs15231b_init");
+    // ESP_LOGE(TAG, "panel_axs15231b_init");
     axs15231b_panel_t *axs15231b = __containerof(panel, axs15231b_panel_t, base);
     esp_lcd_panel_io_handle_t io = axs15231b->io;
 
@@ -289,7 +288,7 @@ static esp_err_t panel_axs15231b_init(esp_lcd_panel_t *panel)
 
 static esp_err_t panel_axs15231b_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end, int y_end, const void *color_data)
 {
-    ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_end, y_end);
+    // ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_end, y_end);
     axs15231b_panel_t *axs15231b = __containerof(panel, axs15231b_panel_t, base);
     assert((x_start < x_end) && (y_start < y_end) && "start position must be smaller than end position");
     esp_lcd_panel_io_handle_t io = axs15231b->io;
@@ -299,7 +298,7 @@ static esp_err_t panel_axs15231b_draw_bitmap(esp_lcd_panel_t *panel, int x_start
     y_start += axs15231b->y_gap;
     y_end += axs15231b->y_gap;
 
-ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_end, y_end);
+    // ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_end, y_end);
     // define an area of frame memory where MCU can access
     tx_param(axs15231b, io, LCD_CMD_CASET, (uint8_t[]) {
         (x_start >> 8) & 0xFF,
@@ -317,17 +316,17 @@ ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap %dx%d, %dx%d", x_start, y_start, x_en
         }, 4);
     }
 
-ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap transfer frame buffer");
+    // ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap transfer frame buffer");
     // transfer frame buffer
     size_t len = (x_end - x_start) * (y_end - y_start) * axs15231b->fb_bits_per_pixel / 8;
-    ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap transfer frame buffer %d, y_start %d", len, y_start);
+    // ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap transfer frame buffer %d, y_start %d, bits_per_pixel: %d", len, y_start, axs15231b->fb_bits_per_pixel);
     if (y_start == 0) {
         tx_color(axs15231b, io, LCD_CMD_RAMWR, color_data, len);//2C
     } else {
         tx_color(axs15231b, io, LCD_CMD_RAMWRC, color_data, len);//3C
     }
 
-    ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap done");
+    // ESP_LOGE(TAG, "panel_axs15231b_draw_bitmap done");
     return ESP_OK;
 }
 
