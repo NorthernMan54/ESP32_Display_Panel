@@ -27,6 +27,7 @@
 #define LVGL_PORT_HANDLE_FLUSH_READY 0
 #else
 #define LVGL_PORT_HANDLE_FLUSH_READY 0
+#warning "LVGL_PORT_HANDLE_FLUSH_READY was disabled due to assert errors"
 #endif
 
 void *memset(void *s, int c, size_t n)
