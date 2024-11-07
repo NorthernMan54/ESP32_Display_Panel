@@ -63,9 +63,9 @@ typedef struct
     lv_display_t *disp_drv;              /* LVGL display driver */
 
     uint32_t trans_size;              /* Maximum size for one transport */
-    lv_color16_t *trans_buf_1;          /* Buffer send to driver */
-    lv_color16_t *trans_buf_2;          /* Buffer send to driver */
-    lv_color16_t *trans_act;            /* Active buffer for sending to driver */
+    lv_color16_t *trans_buf_1;        /* Buffer send to driver */
+    lv_color16_t *trans_buf_2;        /* Buffer send to driver */
+    lv_color16_t *trans_act;          /* Active buffer for sending to driver */
     SemaphoreHandle_t trans_done_sem; /* Semaphore for signaling idle transfer */
     lv_display_rotation_t sw_rotate;  /* Panel software rotation mask */
 
@@ -203,7 +203,8 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     lv_disp_t *disp = NULL;
     lv_color16_t *buf1 = NULL;
     lv_color16_t *buf2 = NULL;
-    lv_color16_t *buf3 = NULL;
+    lv_color16_t *trans_buf_1 = NULL;
+    lv_color16_t *trans_buf_2 = NULL;
     SemaphoreHandle_t trans_done_sem = NULL;
 
     assert(disp_cfg != NULL);
@@ -238,17 +239,22 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     buf1 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color16_t), buff_caps);
     ESP_GOTO_ON_FALSE(buf1, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf1) allocation!");
 
+    buf2 = heap_caps_malloc(disp_cfg->buffer_size * sizeof(lv_color16_t), buff_caps);
+    ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf2) allocation!");
+
+    LV_LOG_INFO("buf1: %p, buf2: %p", buf1, buf2);
+
     if (disp_ctx->trans_size)
     {
         uint32_t caps = MALLOC_CAP_DMA;
 
-        buf2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color16_t), caps);
-        ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
-        disp_ctx->trans_buf_1 = buf2;
+        trans_buf_1 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color16_t), caps);
+        ESP_GOTO_ON_FALSE(trans_buf_1, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
+        disp_ctx->trans_buf_1 = trans_buf_1;
 
-        buf3 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color16_t), caps);
-        ESP_GOTO_ON_FALSE(buf3, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
-        disp_ctx->trans_buf_2 = buf3;
+        trans_buf_2 = heap_caps_malloc(disp_ctx->trans_size * sizeof(lv_color16_t), caps);
+        ESP_GOTO_ON_FALSE(trans_buf_2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for buffer(transport) allocation!");
+        disp_ctx->trans_buf_2 = trans_buf_2;
 
         trans_done_sem = xSemaphoreCreateCounting(1, 0);
         ESP_GOTO_ON_FALSE(trans_done_sem, ESP_ERR_NO_MEM, err, TAG, "Failed to create transport counting Semaphore");
@@ -264,7 +270,7 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
     // (lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
-    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size * sizeof(lv_color16_t), LV_DISPLAY_RENDER_MODE_DIRECT);
+    lv_display_set_buffers(disp, buf1, buf2, disp_cfg->buffer_size * sizeof(lv_color16_t), LV_DISPLAY_RENDER_MODE_DIRECT);
 
     disp_ctx->disp_drv = disp;
 
@@ -301,9 +307,13 @@ err:
         {
             free(buf2);
         }
-        if (buf3)
+        if (trans_buf_1)
         {
-            free(buf3);
+            free(trans_buf_1);
+        }
+        if (trans_buf_2)
+        {
+            free(trans_buf_2);
         }
         if (trans_done_sem)
         {
@@ -462,7 +472,7 @@ static void lvgl_port_task(void *arg)
 
 static void lvgl_port_task_deinit(void)
 {
-       LV_LOG_INFO("lvgl_port_task_deinit");
+    LV_LOG_INFO("lvgl_port_task_deinit");
     if (lvgl_port_ctx.lvgl_mux)
     {
         vSemaphoreDelete(lvgl_port_ctx.lvgl_mux);
@@ -498,7 +508,7 @@ static bool lvgl_port_flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, e
 
 static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, uint8_t *px_map)
 {
-    // LV_LOG_INFO("%dx%d, %dx%d", area->x1, area->y1, area->x2, area->y2);
+    LV_LOG_INFO("px_map: %p, %dx%d, %dx%d", px_map, area->x1, area->y1, area->x2, area->y2);
     lv_color16_t *color_map = (lv_color16_t *)px_map;
     assert(drv != NULL);
     lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(drv);
@@ -515,6 +525,7 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
     lv_color16_t *to = NULL;
 
     lv_draw_sw_rgb565_swap(color_map, width * height);
+
     if (disp_ctx->trans_size)
     {
         assert(disp_ctx->trans_buf_1 != NULL);
@@ -681,7 +692,7 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
     }
     else
     {
-        // LV_LOG_INFO("else");
+        LV_LOG_INFO("direct");
         esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, x_start, y_start, x_end + 1, y_end + 1, color_map);
     }
     // LV_LOG_INFO("done");
