@@ -270,8 +270,8 @@ lv_disp_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
     // (lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
-    lv_display_set_buffers(disp, buf1, buf2, disp_cfg->buffer_size * sizeof(lv_color16_t), LV_DISPLAY_RENDER_MODE_DIRECT);
-
+    // lv_display_set_buffers(disp, buf1, buf2, disp_cfg->buffer_size * sizeof(lv_color16_t), LV_DISPLAY_RENDER_MODE_DIRECT);
+    lv_display_set_buffers(disp, buf1, NULL, disp_cfg->buffer_size * sizeof(lv_color16_t), LV_DISPLAY_RENDER_MODE_DIRECT);
     disp_ctx->disp_drv = disp;
 
     LV_LOG_INFO("hres, vres %d %d", disp_cfg->hres, disp_cfg->vres);

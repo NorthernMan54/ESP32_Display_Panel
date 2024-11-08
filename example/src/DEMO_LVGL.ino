@@ -6,6 +6,8 @@
 #include "lv_port.h"
 #include "esp_log.h"
 
+#include "sqlUI/ui.h"
+
 static const char *TAG = "DEMO";
 /**
  * Set the rotation degree:
@@ -85,7 +87,7 @@ void setup()
      * Or try out a demo.
      * Don't forget to uncomment header and enable the demos in `lv_conf.h`. E.g. `LV_USE_DEMOS_WIDGETS`
      */
-    lv_example_get_started_1();
+    ui_init();
     // lv_demo_widgets();
     //     lv_demo_benchmark();
     // lv_demo_music();
@@ -97,8 +99,17 @@ void setup()
     Serial.println(title + " end");
 }
 
+ulong next_millis;
+auto lv_last_tick = millis();
+
 void loop()
 {
     Serial.println("IDLE loop");
     delay(1000);
+    auto const now = millis();
+    // Update the ticker
+    lv_tick_inc(now - lv_last_tick);
+    lv_last_tick = now;
+    // Update the UI
+    lv_timer_handler();
 }
